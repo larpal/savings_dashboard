@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import pandas_datareader as pdr
 
 SOURCE_FILE = "investments.csv"
 
@@ -13,6 +14,25 @@ except:
 
 df
 
+@st.cache
+def get_stock_data(stocks=['NVDA']):
+    new_data = {}
+    err = []
+    for stock in stocks:
+        try:
+            new_data[stock] = pdr.get_data_yahoo(stock)[['Close']].rename(columns={'Close':stock})
+        # new_data[stock]
+        except:
+            err.append(stock)    
+    return pd.concat(new_data.values(), axis=1), err
+
+df_test, err = get_stock_data(df['Aktienticker'].unique())
+st.write(f'No data found for tickers {err}')
+st.write(df['Aktienticker'].unique())
+df_test
+st.line_chart(df_test)
+
+# field to add new stocks to current list
 new_buy = st.checkbox("Neuer Kauf")
 if new_buy:
     date = st.date_input("Kaufdatum")
