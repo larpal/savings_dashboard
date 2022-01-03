@@ -41,10 +41,24 @@ st.line_chart(df_test)
 
 # compute current worth
 df_stocks_cum = df_test.copy()
+
+df_stocks_cum["Einstandswert"] = 0
+df_stocks_cum.loc[df_stocks_cum.index<df_cum.index[0],"VWRL.AS"] = 0
+df_stocks_cum.loc[df_stocks_cum.index>=df_cum.index[-1],"VWRL.AS"] = df_stocks_cum.loc[df_stocks_cum.index>=df_cum.index[-1],"VWRL.AS"]*df_cum.iloc[-1]["Stückzahl"]
+df_stocks_cum.loc[df_stocks_cum.index>=df_cum.index[-1],"Einstandswert"] = df_cum.iloc[-1]["Einstandswert"]
+
+# aggregate einstandswert
 for t1,t2 in zip(df_cum.index[:-1], df_cum.index[1:]):
-    st.write(t1,t2)
-    st.write(df_stocks_cum[(t1<=df_stocks_cum.index) & (df_stocks_cum.index<t2)]["VWRL.AS"])# *= \
-    #df_cum[t1]["Stückzahl"]
+    df_stocks_cum.loc[(t1<=df_stocks_cum.index) & (df_stocks_cum.index<t2),"VWRL.AS"] = \
+    df_stocks_cum.loc[(t1<=df_stocks_cum.index) & (df_stocks_cum.index<t2),"VWRL.AS"] *df_cum.loc[t1]["Stückzahl"]
+
+    df_stocks_cum.loc[(t1<=df_stocks_cum.index) & (df_stocks_cum.index<t2),"Einstandswert"] = df_cum.loc[t1]["Einstandswert"]
+
+st.write(df_stocks_cum)
+st.line_chart(df_stocks_cum)
+
+df_stocks_cum["Gewinn"] = 100*(df_stocks_cum["VWRL.AS"]/df_stocks_cum["Einstandswert"]-1)
+st.line_chart(df_stocks_cum[["Gewinn"]])
 
 # field to add new stocks to current list
 new_buy = st.checkbox("Neuer Kauf")
@@ -55,7 +69,7 @@ if new_buy:
     amount = st.number_input("Stückzahl")
     add_buy = st.button("Hinzufügen")
     if add_buy:
-        df = df.append({"Datum":date,
+        df = df.reset_index().append({"Datum":date,
                         "Aktienticker":ticker,
                         "Einstandswert":buy_value,
                         "Stückzahl":amount},
