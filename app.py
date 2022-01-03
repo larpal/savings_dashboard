@@ -7,15 +7,22 @@ SOURCE_FILE = "investments.csv"
 st.write("Savings Dashboard")
 
 try:
-    df = pd.read_csv(SOURCE_FILE)
+    df = pd.read_csv(SOURCE_FILE).sort_values(by="Datum").set_index("Datum")
 except:
     df = pd.DataFrame(columns=["Datum", "Aktienticker",
                                "Einstandswert", "Stückzahl"])
 
 df
+df_cum = df.copy()
+for stock in df_cum["Aktienticker"].unique():
+    df_cum.loc[df_cum["Aktienticker"]==stock,["Einstandswert","Stückzahl"]] = \
+    df_cum.loc[df_cum["Aktienticker"]==stock,["Einstandswert","Stückzahl"]].cumsum()
+st.write(df_cum)
 
 @st.cache
-def get_stock_data(stocks=['NVDA']):
+def get_stock_data(stocks:list=['NVDA']) -> pd.DataFrame:
+    """ get stock price data from yahoo finance
+    """
     new_data = {}
     err = []
     for stock in stocks:
@@ -31,6 +38,13 @@ st.write(f'No data found for tickers {err}')
 st.write(df['Aktienticker'].unique())
 df_test
 st.line_chart(df_test)
+
+# compute current worth
+df_stocks_cum = df_test.copy()
+for t1,t2 in zip(df_cum.index[:-1], df_cum.index[1:]):
+    st.write(t1,t2)
+    st.write(df_stocks_cum[(t1<=df_stocks_cum.index) & (df_stocks_cum.index<t2)]["VWRL.AS"])# *= \
+    #df_cum[t1]["Stückzahl"]
 
 # field to add new stocks to current list
 new_buy = st.checkbox("Neuer Kauf")
