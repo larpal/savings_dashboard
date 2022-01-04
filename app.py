@@ -11,13 +11,22 @@ try:
 except:
     df = pd.DataFrame(columns=["Datum", "Aktienticker",
                                "Einstandswert", "Stückzahl"])
-
 df
+
+st.write("""---""")
+# cumulative buying history
 df_cum = df.copy()
 for stock in df_cum["Aktienticker"].unique():
     df_cum.loc[df_cum["Aktienticker"]==stock,["Einstandswert","Stückzahl"]] = \
     df_cum.loc[df_cum["Aktienticker"]==stock,["Einstandswert","Stückzahl"]].cumsum()
 st.write(df_cum)
+st.write("""---""")
+
+from src.stock import Stock
+
+vwrl = Stock("VWRL.AS", "Vanguard FTSE All World", df)
+st.write("Class prices\n",vwrl.prices,vwrl.purchases_cum)
+
 
 @st.cache
 def get_stock_data(stocks:list=['NVDA']) -> pd.DataFrame:
