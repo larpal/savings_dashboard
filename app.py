@@ -1,27 +1,25 @@
 import streamlit as st
 import pandas as pd
 import pandas_datareader as pdr
+from src.stock import BuyHistory
 
 SOURCE_FILE = "investments.csv"
 
 st.write("Savings Dashboard")
 
-try:
-    df = pd.read_csv(SOURCE_FILE).sort_values(by="Datum").set_index("Datum")
-except:
-    df = pd.DataFrame(columns=["Datum", "Aktienticker",
-                               "Einstandswert", "Stückzahl"])
-df
-
+st.write("Class BuyHistory")
+invests = BuyHistory(SOURCE_FILE)
+invests.buys
+df = invests.buys
 st.write("""---""")
 # cumulative buying history
 df_cum = df.copy()
 for stock in df_cum["Aktienticker"].unique():
     df_cum.loc[df_cum["Aktienticker"]==stock,["Einstandswert","Stückzahl"]] = \
     df_cum.loc[df_cum["Aktienticker"]==stock,["Einstandswert","Stückzahl"]].cumsum()
-st.write(df_cum)
-st.write("""---""")
+invests.holdings
 
+st.write("""---""")
 from src.stock import Stock
 
 vwrl = Stock("VWRL.AS", "Vanguard FTSE All World", df)
