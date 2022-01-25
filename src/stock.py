@@ -13,7 +13,9 @@ class Stock:
         self.name = name
         self.prices = self.get_stock_data()
         self.purchases = purchases[purchases["Aktienticker"]==ticker]
-        self.purchases_cum = self.get_cum_purchases()
+        self.holdings = self.get_holdings()
+        self.valuations = self.get_valuations()
+
     @st.cache
     def get_stock_data(self, price_type='Close') -> pd.DataFrame:
         """ get stock price data from yahoo finance
@@ -21,14 +23,44 @@ class Stock:
         return pdr.get_data_yahoo(self.ticker)[[price_type]]\
                 .rename(columns={price_type:self.ticker})
 
-    def get_cum_purchases(self):
+    def get_holdings(self) -> pd.DataFrame:
         """ get cumulative purchase history
         """
+        df = self.purchases.copy().sort_index()
+        df[["Einstandswert","Stückzahl"]] = \
+                df[["Einstandswert","Stückzahl"]].cumsum()
+        return df
 
-        self.purchases_cum = self.purchases.copy()
-        self.purchases_cum[["Einstandswert","Stückzahl"]] = \
-                self.purchases_cum[["Einstandswert","Stückzahl"]].cumsum()
+    def get_valuations(self) -> pd.DataFrame:
+        #initialize
+        df = self.prices.copy()
+        df["Einstandswert"] = 0
+        df.loc[df.index<self.holdings.index[0],self.ticker] = 0
+        df.loc[df.index>=self.holdings.index[-1],self.ticker] = \
+                df.loc[df.index>=self.holdings.index[-1],:] \
+                *self.holdings.iloc[-1]["Stückzahl"]
+        df.loc[df.index>=self.holdings.index[-1],"Einstandswert"] = \
+                self.holdings.iloc[-1]["Einstandswert"]
+        # aggregate einstandswert
+        for t1,t2 in zip(self.holdings.index[:-1], self.holdings.index[1:]):
+            df.loc[(t1<=df.index) & (df.index<t2),self.ticker] = \
+                df.loc[(t1<=df.index) & (df.index<t2),self.ticker] \
+                *self.holdings.loc[t1]["Stückzahl"]
+            df.loc[(t1<=df.index) & (df.index<t2),"Einstandswert"] = \
+                self.holdings.loc[t1]["Einstandswert"] 
+        return df
 
+class StockPortfolio:
+    """Portfolio consisting of multiple stocks."""
+    def __init__(self, buys: pd.DataFrame):
+        self.stocks = self.initialize_stocks(buys)
+
+    @st.cache
+    def initialize_stocks(self, buys: pd.DataFrame) -> pd.DataFrame:
+        stocks = {}
+        for ticker in buys["Aktienticker"].unique():
+            stocks[ticker] = Stock(ticker, ticker, buys)
+        return stocks
 
 class BuyHistory:
 

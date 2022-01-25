@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import pandas_datareader as pdr
-from src.stock import BuyHistory
+from src.stock import BuyHistory, Stock, StockPortfolio
 
 SOURCE_FILE = "investments.csv"
 
@@ -20,11 +20,16 @@ for stock in df_cum["Aktienticker"].unique():
 invests.holdings
 
 st.write("""---""")
-from src.stock import Stock
 
 vwrl = Stock("VWRL.AS", "Vanguard FTSE All World", df)
-st.write("Class prices\n",vwrl.prices,vwrl.purchases_cum)
+st.write("Class prices\n",vwrl.prices,vwrl.holdings)
+st.line_chart(vwrl.valuations)
 
+st.write("""StockPortfolio""")
+st.write("""---""")
+portfolio = StockPortfolio(invests.buys)
+st.write(portfolio.stocks.keys())
+st.write("""---""")
 
 @st.cache
 def get_stock_data(stocks:list=['NVDA']) -> pd.DataFrame:
@@ -46,9 +51,9 @@ st.write(df['Aktienticker'].unique())
 df_test
 st.line_chart(df_test)
 
-# compute current worth
+### compute current worth
 df_stocks_cum = df_test.copy()
-
+# add column Einstandswert and cumulate stock valuations
 df_stocks_cum["Einstandswert"] = 0
 df_stocks_cum.loc[df_stocks_cum.index<df_cum.index[0],"VWRL.AS"] = 0
 df_stocks_cum.loc[df_stocks_cum.index>=df_cum.index[-1],"VWRL.AS"] = df_stocks_cum.loc[df_stocks_cum.index>=df_cum.index[-1],"VWRL.AS"]*df_cum.iloc[-1]["Stückzahl"]
